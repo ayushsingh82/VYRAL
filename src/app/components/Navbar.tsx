@@ -2,23 +2,20 @@ import React from 'react'
 
 const Navbar = () => {
   return (
-    <nav className="bg-gray-800 h-14 flex items-center justify-between px-6 shadow-md">
-      {/* Left side - HEAT logo/name */}
-      <div className="flex items-center">
+    <nav className="bg-black h-10 flex items-center justify-between px-6 shadow-md border-b border-gray-400">
+      {/* Left side - HEAT logo/name and search bar close together */}
+      <div className="flex items-center gap-4">
         <h1 className="text-white text-xl font-bold">HEAT</h1>
-      </div>
-
-      {/* Center - Search bar */}
-      <div className="flex-1 max-w-md mx-8">
+        {/* Search bar moved close to HEAT name */}
         <div className="relative">
           <input
             type="text"
             placeholder="Search tokens..."
-            className="w-full px-4 py-2 bg-gray-700 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-gray-600 transition-colors"
+            className="w-full px-3 py-1 bg-gray-800 text-white placeholder-gray-400 rounded-md focus:outline-none  focus:bg-gray-700 transition-colors text-sm"
           />
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
             <svg
-              className="w-4 h-4 text-gray-400"
+              className="w-3 h-3 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -36,7 +33,7 @@ const Navbar = () => {
 
       {/* Right side - Connect Wallet button */}
       <div className="flex items-center">
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+        <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black text-sm">
           Connect Wallet
         </button>
       </div>
