@@ -30,11 +30,13 @@ const Landing = () => {
       {/* Main Content Area */}
       <div className="flex gap-6">
         {/* Streaming Box - 2/3 width */}
-        <div className="w-2/3 bg-black border border-gray-800 rounded-lg p-4 shadow-lg">
-          <h2 className="text-white text-lg font-bold mb-3">Live Stream</h2>
-          <div className="bg-gray-900 rounded-lg h-48 flex items-center justify-center">
-            <p className="text-gray-400 text-base">Streaming Content Area</p>
-          </div>
+        <div className="w-2/3 bg-black border border-gray-800 rounded-lg overflow-hidden shadow-lg relative h-64">
+          <h2 className="absolute top-3 left-3 text-white text-lg font-bold z-10 bg-black bg-opacity-70 px-3 py-1 rounded">Live Stream</h2>
+          <img 
+            src="https://ca-times.brightspotcdn.com/dims4/default/32fcbe0/2147483647/strip/false/crop/6786x4500+0+0/resize/1486x985!/quality/75/?url=https%3A%2F%2Fcalifornia-times-brightspot.s3.amazonaws.com%2Fd7%2F2b%2Fcfa941e04a0781f1c14dde3bddb7%2Fhttps-delivery-gettyimages.com%2Fdownloads%2F2194651858"
+            alt="MMA Fighting Content"
+            className="w-full h-full object-cover"
+          />
         </div>
 
         {/* Market Sentiment Box - 1/3 width */}
