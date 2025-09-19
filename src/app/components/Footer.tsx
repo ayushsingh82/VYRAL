@@ -29,10 +29,10 @@ const Footer = () => {
   ]
 
   return (
-    <footer className="bg-black border-t border-gray-800 h-12 flex items-center px-6">
-      <div className="flex items-center gap-6">
+    <footer className="bg-black border-t border-gray-800 h-12 flex items-center px-3">
+      <div className="flex items-center gap-2">
         {footerItems.map((item) => (
-          <div key={item.id} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+          <div key={item.id} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity bg-black border border-gray-800 rounded-lg px-2 py-1">
             <span className="text-lg">{item.emoji}</span>
             <span className={`text-sm font-medium ${item.color}`}>
               {item.name}

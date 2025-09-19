@@ -31,7 +31,8 @@ const PopularBox = () => {
   return (
     <div className="mt-6">
       {/* Heading */}
-      <h3 className="text-white text-sm font-semibold mb-4">Popular Collection</h3>
+      <h3 className="text-white text-md font-semibold mb-1">Popular Culture Collection</h3>
+      <p className="text-gray-300 text-xs mb-4">Popularity based on volume and gain/loss</p>
       
       {/* Popular Items Grid */}
       <div className="grid grid-cols-3 gap-4">
