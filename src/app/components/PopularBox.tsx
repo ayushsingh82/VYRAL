@@ -36,26 +36,21 @@ const PopularBox = () => {
       {/* Popular Items Grid */}
       <div className="grid grid-cols-3 gap-4">
         {popularItems.map((item) => (
-          <div key={item.id} className="bg-black border border-gray-800 rounded-lg overflow-hidden shadow-lg relative h-32">
-            {/* Volume overlay - Top Right */}
+          <div key={item.id} className="bg-black border border-gray-800 rounded-lg overflow-hidden shadow-lg relative h-40">
+            {/* Volume and Gain/Loss overlay - Top Right (same line) */}
             <div className="absolute top-2 right-2 bg-black bg-opacity-70 px-2 py-1 rounded z-10">
-              <div className="text-white text-xs text-center">
-                <div className="text-gray-300">Volume</div>
-                <div className="font-bold">{item.volume}</div>
-              </div>
-            </div>
-
-            {/* Gain/Loss overlay - Top Right (below volume) */}
-            <div className="absolute top-12 right-2 bg-black bg-opacity-70 px-2 py-1 rounded z-10">
-              <div className={`text-xs font-bold ${item.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                {item.gain}
+              <div className="text-white text-xs flex items-center gap-2">
+                <span className="font-bold">{item.volume}</span>
+                <span className={`font-bold ${item.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.gain}
+                </span>
               </div>
             </div>
 
             {/* Name overlay - Bottom Left */}
             <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 px-2 py-1 rounded z-10">
               <div className="text-white text-xs font-bold">
-                {item.name}
+                {item.name} <span className="text-orange-400">10x</span>
               </div>
             </div>
             
