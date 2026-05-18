@@ -1,12 +1,52 @@
-import React from 'react'
+"use client";
+
+import React, { useState } from "react";
+import { useWallet, shortAddr } from "../hooks/useWallet";
+import { faucetMintKai, getKaiBalance, fmtKai } from "../lib/markets";
 
 const Navbar = () => {
+  const { address, connect, disconnect, connecting, chainId, error } = useWallet();
+  const [busy, setBusy] = useState(false);
+  const [bal, setBal] = useState<bigint | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!address) {
+        setBal(null);
+        return;
+      }
+      try {
+        const b = await getKaiBalance(address);
+        if (!cancelled) setBal(b);
+      } catch {
+        if (!cancelled) setBal(null);
+      }
+    }
+    load();
+    const id = setInterval(load, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [address]);
+
+  async function onFaucet() {
+    if (!address) return;
+    setBusy(true);
+    try {
+      await faucetMintKai(address);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <nav className="bg-black h-10 flex items-center justify-between px-6 shadow-md border-b border-gray-400">
-      {/* Left side - HEAT logo/name and search bar close together */}
       <div className="flex items-center gap-4">
         <h1 className="text-white text-xl font-bold">HEAT</h1>
-        {/* Search bar moved close to HEAT name */}
         <div className="relative">
           <input
             type="text"
@@ -29,16 +69,48 @@ const Navbar = () => {
             </svg>
           </div>
         </div>
+        {error && (
+          <span className="text-red-400 text-xs">{error}</span>
+        )}
       </div>
 
-      {/* Right side - Connect Wallet button */}
-      <div className="flex items-center">
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black text-sm">
-          Connect Wallet
-        </button>
+      <div className="flex items-center gap-2">
+        {address && (
+          <div className="text-white text-xs flex items-center gap-2">
+            <span className="text-gray-400">Balance</span>
+            <span className="font-bold">{bal !== null ? `${fmtKai(bal)} KAI` : "…"}</span>
+          </div>
+        )}
+        {address && (
+          <button
+            onClick={onFaucet}
+            disabled={busy}
+            className="bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded-md text-xs font-medium transition-colors duration-200 disabled:opacity-50"
+            title="Mint 10,000 test KAI"
+          >
+            {busy ? "Minting…" : "Get Test KAI"}
+          </button>
+        )}
+        {!address ? (
+          <button
+            onClick={connect}
+            disabled={connecting}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black text-sm disabled:opacity-60"
+          >
+            {connecting ? "Connecting…" : "Connect Wallet"}
+          </button>
+        ) : (
+          <button
+            onClick={disconnect}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md font-medium transition-colors duration-200 text-sm"
+            title={`Chain ${chainId ?? "?"}`}
+          >
+            {shortAddr(address)}
+          </button>
+        )}
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;
