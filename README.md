@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HEAT
 
-## Getting Started
+**HEAT** is a leverage trading platform for cultural / popularity assets — celebrities, news, pop culture, sports, RWA, pre-IPO. Users post **KAI** as collateral and go long or short on a subject's popularity with up to **20x leverage**. Win if the mark price moves your way; get liquidated if loss reaches 95% of collateral.
 
-First, run the development server:
+This repo contains:
+- **Smart contracts** (`contracts/`) — Solidity 0.8.24 + Hardhat. KAI ERC20, per-subject `HeatMarket`, and a `HeatMarketFactory`.
+- **Next.js app** (`src/`) — React UI wired to the contracts via [viem](https://viem.sh).
+
+See [`plan.md`](./plan.md) for the architecture and implementation checklist.
+
+## Quick start
+
+Three terminals.
+
+### 1. Start a local Hardhat node
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd contracts
+npm install        # first time only
+npm run node       # http://127.0.0.1:8545, chainId 31337
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Deploy contracts + seed markets
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd contracts
+npm run deploy:local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This deploys `KAIToken` and `HeatMarketFactory`, creates 7 seeded markets (Islam Makhachev, Mr Beast, Pokemon Go, Tariff, OpenAI, S&P500, Ondo), funds each market's insurance pool with 1M KAI, and writes `addresses.local.json` into both `contracts/` and `src/app/lib/` so the frontend picks them up.
 
-## Learn More
+### 3. Start the Next.js app
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install        # first time only
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open `http://localhost:3000`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**To trade**: click **Connect Wallet** (MetaMask, etc. — add the local network: RPC `http://127.0.0.1:8545`, chainId `31337`, currency ETH). Import one of the Hardhat default private keys to get test ETH for gas. Click **Get Test KAI** in the navbar to mint 10,000 KAI to your wallet. Click any market tile or the **Open Position** button to choose long/short, leverage, and collateral.
 
-## Deploy on Vercel
+## Contract architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `KAIToken` — ERC20, `mint()` is public for the test faucet.
+- `HeatMarket` — One per subject. State: `markPrice`, `longOI`, `shortOI`, `insuranceFund`, per-user `Position`. Methods: `openPosition`, `closePosition`, `liquidate`, oracle-only `updatePrice`, anyone-may `fundInsurance`. P&L = `size * (mark - entry) / entry` (inverted for shorts). Liquidation triggers at 95% loss; liquidator earns 5% of forfeited collateral.
+- `HeatMarketFactory` — Owner-only `createMarket`, indexes by category, emits `MarketCreated`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Counterparty pool**: profitable PnL is paid from each market's `insuranceFund`, which is replenished by losing trades and liquidations. This is a simplification — production would add a funding rate / vAMM. See `plan.md` "Out of scope".
+
+## Tests
+
+```bash
+cd contracts
+npm test
+```
+
+18 specs covering KAI faucet/transfers, market open/close P&L for longs and shorts, leverage cap, liquidation threshold + bounty, OI accounting, sentiment %, oracle gating, insurance fund debits/credits, factory ownership + category indexing.
+
+## Frontend integration (viem)
+
+- `src/app/lib/chain.ts` — viem public + wallet clients targeting local Hardhat (chainId 31337).
+- `src/app/lib/abi.ts` / `abi.json` — re-exported ABIs from compiled artifacts.
+- `src/app/lib/addresses.ts` / `addresses.local.json` — populated by the deploy script.
+- `src/app/lib/markets.ts` — high-level read/write helpers (`getMarketSnapshot`, `openPosition`, `closePosition`, `faucetMintKai`, etc.).
+- `src/app/hooks/useWallet.ts` — connect / disconnect / chain switching against `window.ethereum`.
+- `src/app/hooks/useMarket.ts` — polls a market's snapshot + the user's position every 6s.
+
+To redeploy after a contract change, re-run `npm run deploy:local` from `contracts/`. The script copies the new ABIs/addresses into the frontend automatically; refresh the browser.
