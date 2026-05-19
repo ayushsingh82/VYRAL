@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useWallet, shortAddr } from "../hooks/useWallet";
-import { faucetMintKai, getKaiBalance, fmtKai } from "../lib/markets";
+import { faucetMintVyr, getVyrBalance, fmtVyr } from "../lib/markets";
 
 const Navbar = () => {
   const { address, connect, disconnect, connecting, chainId, error } = useWallet();
@@ -17,7 +17,7 @@ const Navbar = () => {
         return;
       }
       try {
-        const b = await getKaiBalance(address);
+        const b = await getVyrBalance(address);
         if (!cancelled) setBal(b);
       } catch {
         if (!cancelled) setBal(null);
@@ -35,7 +35,7 @@ const Navbar = () => {
     if (!address) return;
     setBusy(true);
     try {
-      await faucetMintKai(address);
+      await faucetMintVyr(address);
     } catch (e) {
       console.error(e);
     } finally {
@@ -46,7 +46,7 @@ const Navbar = () => {
   return (
     <nav className="bg-black h-10 flex items-center justify-between px-6 shadow-md border-b border-gray-400">
       <div className="flex items-center gap-4">
-        <h1 className="text-white text-xl font-bold">HEAT</h1>
+        <h1 className="text-white text-xl font-bold">VYRAL</h1>
         <div className="relative">
           <input
             type="text"
@@ -78,7 +78,7 @@ const Navbar = () => {
         {address && (
           <div className="text-white text-xs flex items-center gap-2">
             <span className="text-gray-400">Balance</span>
-            <span className="font-bold">{bal !== null ? `${fmtKai(bal)} KAI` : "…"}</span>
+            <span className="font-bold">{bal !== null ? `${fmtVyr(bal)} VYR` : "…"}</span>
           </div>
         )}
         {address && (
@@ -86,9 +86,9 @@ const Navbar = () => {
             onClick={onFaucet}
             disabled={busy}
             className="bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded-md text-xs font-medium transition-colors duration-200 disabled:opacity-50"
-            title="Mint 10,000 test KAI"
+            title="Mint 10,000 test VYR"
           >
-            {busy ? "Minting…" : "Get Test KAI"}
+            {busy ? "Minting…" : "Get Test VYR"}
           </button>
         )}
         {!address ? (

@@ -1,19 +1,19 @@
-# HEAT — Project Completion Plan
+# VYRAL — Project Completion Plan
 
 ## Product summary (derived from current UI)
 
-**HEAT** is a perpetual-style leverage trading platform where users go **long / short** on the *popularity* of cultural subjects (celebrities, news, pop culture, sports, RWA, pre-IPO, etc.) with up to **20x leverage**, settled in the protocol's native quote token **KAI**.
+**VYRAL** is a perpetual-style leverage trading platform where users go **long / short** on the *popularity* of cultural subjects (celebrities, news, pop culture, sports, RWA, pre-IPO, etc.) with up to **20x leverage**, settled in the protocol's native quote token **VYR**.
 
 UI surfaces today (static / hardcoded):
 - Categories chips: `Trending, Top Gainers, Celebrities, Pre-IPO, RWA, Sports, Pop Culture`
-- A featured **Live Stream** card with: subject, leverage badge, price (KAI), open interest, volume.
-- A **Market Sentiment** panel: long %, short %, long KAI size, short KAI size, sentiment bar.
+- A featured **Live Stream** card with: subject, leverage badge, price (VYR), open interest, volume.
+- A **Market Sentiment** panel: long %, short %, long VYR size, short VYR size, sentiment bar.
 - Two grids (**Popular Culture** and **Popular News**) of market tiles: name, image, volume, gain %.
 - Navbar with **Connect Wallet** button (not wired).
 
 ## What we are building to complete it
 
-1. Smart contracts (Solidity, Hardhat) for KAI token + per-subject leverage markets.
+1. Smart contracts (Solidity, Hardhat) for VYR token + per-subject leverage markets.
 2. Hardhat tests (TypeScript) covering happy path + edge cases (leverage cap, liquidation, P&L).
 3. viem-based on-chain integration layer in the Next.js app that replaces hardcoded data with live reads and adds wallet connect + open/close position writes.
 
@@ -25,13 +25,13 @@ UI surfaces today (static / hardcoded):
 my-app/
 ├── contracts/                  # Hardhat project (Solidity sources + tests)
 │   ├── contracts/
-│   │   ├── KAIToken.sol        # ERC20 collateral / quote token, mint-for-test
-│   │   ├── HeatMarket.sol      # Per-subject leverage market (long/short, OI, P&L, liq)
-│   │   └── HeatMarketFactory.sol # Deploys + tracks markets; provides discovery
+│   │   ├── VyralToken.sol        # ERC20 collateral / quote token, mint-for-test
+│   │   ├── VyralMarket.sol      # Per-subject leverage market (long/short, OI, P&L, liq)
+│   │   └── VyralMarketFactory.sol # Deploys + tracks markets; provides discovery
 │   ├── test/
-│   │   ├── KAIToken.test.ts
-│   │   ├── HeatMarket.test.ts
-│   │   └── HeatMarketFactory.test.ts
+│   │   ├── VyralToken.test.ts
+│   │   ├── VyralMarket.test.ts
+│   │   └── VyralMarketFactory.test.ts
 │   ├── scripts/
 │   │   └── deploy.ts           # Local hardhat node deployment, emits addresses
 │   ├── hardhat.config.ts
@@ -51,12 +51,12 @@ my-app/
 
 ### Contract design (concise)
 
-`KAIToken` — Standard ERC20 (`name=Kai`, `symbol=KAI`, 18 decimals). Adds a public `mint(address,uint256)` so local users can fund test wallets via the UI's "Get Test KAI" action.
+`VyralToken` — Standard ERC20 (`name=Vyral`, `symbol=VYR`, 18 decimals). Adds a public `mint(address,uint256)` so local users can fund test wallets via the UI's "Get Test VYR" action.
 
-`HeatMarket` — One market per subject. State:
+`VyralMarket` — One market per subject. State:
 - `subject` (string), `category` (string)
 - `markPrice` (uint, scaled 1e18) — updated by `priceOracle` role
-- `longOI`, `shortOI` (uint, KAI notional)
+- `longOI`, `shortOI` (uint, VYR notional)
 - `positions[address]` → `{ size, collateral, entryPrice, isLong, leverage }`
 - `MAX_LEVERAGE = 20`, `LIQUIDATION_THRESHOLD_BPS = 9500` (95% collateral loss → liquidatable)
 
@@ -68,7 +68,7 @@ External methods:
 - View: `getMarketSnapshot()` → `(markPrice, longOI, shortOI, longPct, shortPct, volumeAccum)`
 - View: `getPosition(address)` → full struct + unrealized P&L
 
-`HeatMarketFactory` — `createMarket(subject, category, initialPrice)` deploys a `HeatMarket`, stores it in `allMarkets`, emits `MarketCreated`. View: `getMarketsByCategory(string)`.
+`VyralMarketFactory` — `createMarket(subject, category, initialPrice)` deploys a `VyralMarket`, stores it in `allMarkets`, emits `MarketCreated`. View: `getMarketsByCategory(string)`.
 
 ### Frontend integration (viem)
 
@@ -89,32 +89,32 @@ External methods:
 - [x] 1.3 Configure `hardhat.config.ts` for Solidity 0.8.24, optimizer, local network
 
 ### Phase 2 — Smart contracts
-- [x] 2.1 Implement `KAIToken.sol` (ERC20 + public mint for test)
-- [x] 2.2 Implement `HeatMarket.sol` with open / close / liquidate / price update + view helpers
-- [x] 2.3 Implement `HeatMarketFactory.sol` with createMarket + indices
+- [x] 2.1 Implement `VyralToken.sol` (ERC20 + public mint for test)
+- [x] 2.2 Implement `VyralMarket.sol` with open / close / liquidate / price update + view helpers
+- [x] 2.3 Implement `VyralMarketFactory.sol` with createMarket + indices
 - [x] 2.4 Compile cleanly (`npx hardhat compile`)
 
 ### Phase 3 — Hardhat tests
-- [x] 3.1 `KAIToken.test.ts` — mint, transfer, decimals
-- [x] 3.2 `HeatMarket.test.ts` — open long/short, leverage cap, P&L on price up/down, close, liquidation path, OI accounting, sentiment %
-- [x] 3.3 `HeatMarketFactory.test.ts` — create market, indexing by category, market discovery
+- [x] 3.1 `VyralToken.test.ts` — mint, transfer, decimals
+- [x] 3.2 `VyralMarket.test.ts` — open long/short, leverage cap, P&L on price up/down, close, liquidation path, OI accounting, sentiment %
+- [x] 3.3 `VyralMarketFactory.test.ts` — create market, indexing by category, market discovery
 - [x] 3.4 `npx hardhat test` all green
 
 ### Phase 4 — Local deployment
-- [x] 4.1 `scripts/deploy.ts` deploys KAI + factory + seeds initial markets (Islam Makhachev, Mr Beast, Pokemon Go, Tariff, OpenAI, S&P500, Ondo) and writes `addresses.local.json`
+- [x] 4.1 `scripts/deploy.ts` deploys VYR + factory + seeds initial markets (Islam Makhachev, Mr Beast, Pokemon Go, Tariff, OpenAI, S&P500, Ondo) and writes `addresses.local.json`
 - [x] 4.2 Add `npm run` shortcuts: `compile`, `test`, `node`, `deploy:local`
 
 ### Phase 5 — Frontend integration (viem)
 - [x] 5.1 Add `viem` to root `my-app/package.json` deps
 - [x] 5.2 `src/app/lib/chain.ts` — viem public/wallet client factories targeting local hardhat (chainId 31337) with override for future testnets
 - [x] 5.3 `src/app/lib/abi.ts` + `src/app/lib/addresses.ts` — typed ABIs and address registry
-- [x] 5.4 `src/app/lib/markets.ts` — `getAllMarkets`, `getMarketSnapshot`, `getUserPosition`, `openPosition`, `closePosition`, `approveKai`
+- [x] 5.4 `src/app/lib/markets.ts` — `getAllMarkets`, `getMarketSnapshot`, `getUserPosition`, `openPosition`, `closePosition`, `approveVyral`
 - [x] 5.5 `src/app/hooks/useWallet.ts` — connect via window.ethereum, persisted account
 - [x] 5.6 `src/app/hooks/useMarket.ts` — live read of market + position
 - [x] 5.7 Wire `Navbar.tsx` Connect Wallet to `useWallet`
 - [x] 5.8 Replace hardcoded data in `StreamingBox`, `PopularBox`, `PopularNews` with live reads from factory; keep the same look-and-feel
 - [x] 5.9 Add `OpenPositionModal` triggered from the featured market card (collateral, leverage slider, long/short)
-- [x] 5.10 Add **Get Test KAI** action (mints KAI to connected wallet via `KAIToken.mint`)
+- [x] 5.10 Add **Get Test VYR** action (mints VYR to connected wallet via `VyralToken.mint`)
 
 ### Phase 6 — Verification
 - [x] 6.1 `npx hardhat test` — all tests pass

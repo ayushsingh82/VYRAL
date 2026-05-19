@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { parseUnits } from "viem";
 import { useMarket } from "../hooks/useMarket";
 import { useWallet } from "../hooks/useWallet";
-import { fmtKai } from "../lib/markets";
+import { fmtVyr } from "../lib/markets";
 import OpenPositionModal from "./OpenPositionModal";
 import type { MarketSeed } from "../lib/addresses";
 
@@ -23,9 +23,9 @@ const MarketTile: React.FC<{ item: MarketSeed }> = ({ item }) => {
     if (initial > 0) gainPct = ((mark - initial) / initial) * 100;
   }
   const isPositive = gainPct >= 0;
-  const volume = snapshot ? `${fmtKai(snapshot.volumeAccum)} KAI` : "—";
+  const volume = snapshot ? `${fmtVyr(snapshot.volumeAccum)} VYR` : "—";
 
-  // Avoid unused import warning — used in fmtKai but referenced for parseUnits in modal flow.
+  // Avoid unused import warning — used in fmtVyr but referenced for parseUnits in modal flow.
   void parseUnits;
 
   return (

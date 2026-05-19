@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title HeatMarket
+/// @title VyralMarket
 /// @notice A leverage market on the "popularity" of a single subject (e.g. "Mr Beast").
-///         Users post KAI collateral, choose long/short and leverage (1x..MAX_LEVERAGE),
-///         and earn or lose KAI as the mark price moves. One position per user per market.
-contract HeatMarket {
+///         Users post VYR collateral, choose long/short and leverage (1x..MAX_LEVERAGE),
+///         and earn or lose VYR as the mark price moves. One position per user per market.
+contract VyralMarket {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------
@@ -20,22 +20,22 @@ contract HeatMarket {
     /// @notice Bounty paid to liquidator, in bps of seized collateral.
     uint16 public constant LIQUIDATION_BOUNTY_BPS = 500; // 5%
     uint16 public constant BPS_DENOMINATOR = 10_000;
-    /// @notice Price decimals (1e18). All KAI amounts use 1e18 as well.
+    /// @notice Price decimals (1e18). All VYR amounts use 1e18 as well.
     uint256 public constant PRICE_SCALE = 1e18;
 
     // ---------------------------------------------------------------------
     // Storage
     // ---------------------------------------------------------------------
     struct Position {
-        uint128 collateral;   // KAI collateral posted (1e18)
-        uint128 size;         // notional size in KAI (collateral * leverage)
+        uint128 collateral;   // VYR collateral posted (1e18)
+        uint128 size;         // notional size in VYR (collateral * leverage)
         uint128 entryPrice;   // mark price at open (1e18)
         uint8 leverage;       // 1..MAX_LEVERAGE
         bool isLong;          // true = long, false = short
         bool open;            // false once closed/liquidated
     }
 
-    IERC20 public immutable kai;
+    IERC20 public immutable vyr;
     address public immutable factory;
     address public oracle;
 
@@ -44,10 +44,10 @@ contract HeatMarket {
     string public imageUrl;
 
     uint256 public markPrice;       // 1e18-scaled
-    uint256 public longOI;          // sum of long sizes (notional KAI)
-    uint256 public shortOI;         // sum of short sizes (notional KAI)
+    uint256 public longOI;          // sum of long sizes (notional VYR)
+    uint256 public shortOI;         // sum of short sizes (notional VYR)
     uint256 public volumeAccum;     // lifetime traded notional
-    uint256 public insuranceFund;   // KAI held by protocol to back profitable PnL
+    uint256 public insuranceFund;   // VYR held by protocol to back profitable PnL
 
     mapping(address => Position) public positions;
 
@@ -82,12 +82,12 @@ contract HeatMarket {
     // Modifiers
     // ---------------------------------------------------------------------
     modifier onlyOracle() {
-        require(msg.sender == oracle, "HeatMarket: not oracle");
+        require(msg.sender == oracle, "VyralMarket: not oracle");
         _;
     }
 
     constructor(
-        address kai_,
+        address vyr_,
         address oracle_,
         address factory_,
         string memory subject_,
@@ -95,10 +95,10 @@ contract HeatMarket {
         string memory imageUrl_,
         uint256 initialPrice
     ) {
-        require(kai_ != address(0), "HeatMarket: zero kai");
-        require(oracle_ != address(0), "HeatMarket: zero oracle");
-        require(initialPrice > 0, "HeatMarket: zero price");
-        kai = IERC20(kai_);
+        require(vyr_ != address(0), "VyralMarket: zero vyr");
+        require(oracle_ != address(0), "VyralMarket: zero oracle");
+        require(initialPrice > 0, "VyralMarket: zero price");
+        vyr = IERC20(vyr_);
         oracle = oracle_;
         factory = factory_;
         subject = subject_;
@@ -111,23 +111,23 @@ contract HeatMarket {
     // Oracle / admin
     // ---------------------------------------------------------------------
     function updatePrice(uint256 newPrice) external onlyOracle {
-        require(newPrice > 0, "HeatMarket: zero price");
+        require(newPrice > 0, "VyralMarket: zero price");
         emit PriceUpdated(markPrice, newPrice);
         markPrice = newPrice;
     }
 
     function setOracle(address newOracle) external onlyOracle {
-        require(newOracle != address(0), "HeatMarket: zero oracle");
+        require(newOracle != address(0), "VyralMarket: zero oracle");
         emit OracleUpdated(oracle, newOracle);
         oracle = newOracle;
     }
 
-    /// @notice Anyone may donate KAI to the insurance fund. Without a counterparty pool,
+    /// @notice Anyone may donate VYR to the insurance fund. Without a counterparty pool,
     ///         profitable trades must be paid out from somewhere — this is that pool.
     ///         Losing trades increase the fund implicitly via forfeited collateral.
     function fundInsurance(uint256 amount) external {
-        require(amount > 0, "HeatMarket: zero amount");
-        kai.safeTransferFrom(msg.sender, address(this), amount);
+        require(amount > 0, "VyralMarket: zero amount");
+        vyr.safeTransferFrom(msg.sender, address(this), amount);
         insuranceFund += amount;
         emit InsuranceFunded(msg.sender, amount, insuranceFund);
     }
@@ -136,14 +136,14 @@ contract HeatMarket {
     // Trading
     // ---------------------------------------------------------------------
     function openPosition(uint128 collateral, uint8 leverage, bool isLong) external {
-        require(collateral > 0, "HeatMarket: zero collateral");
-        require(leverage >= 1 && leverage <= MAX_LEVERAGE, "HeatMarket: bad leverage");
+        require(collateral > 0, "VyralMarket: zero collateral");
+        require(leverage >= 1 && leverage <= MAX_LEVERAGE, "VyralMarket: bad leverage");
         Position storage p = positions[msg.sender];
-        require(!p.open, "HeatMarket: position exists");
+        require(!p.open, "VyralMarket: position exists");
 
         uint128 size = collateral * leverage;
 
-        kai.safeTransferFrom(msg.sender, address(this), collateral);
+        vyr.safeTransferFrom(msg.sender, address(this), collateral);
 
         p.collateral = collateral;
         p.size = size;
@@ -164,7 +164,7 @@ contract HeatMarket {
 
     function closePosition() external {
         Position storage p = positions[msg.sender];
-        require(p.open, "HeatMarket: no position");
+        require(p.open, "VyralMarket: no position");
 
         (int256 pnl, uint128 payout) = _settleRaw(p);
         // insurance delta: collateral - payout. Positive on user loss, negative on user gain.
@@ -173,7 +173,7 @@ contract HeatMarket {
             insuranceFund += uint256(insuranceDelta);
         } else {
             uint256 owed = uint256(-insuranceDelta);
-            require(insuranceFund >= owed, "HeatMarket: insurance underfunded");
+            require(insuranceFund >= owed, "VyralMarket: insurance underfunded");
             insuranceFund -= owed;
         }
 
@@ -181,7 +181,7 @@ contract HeatMarket {
         p.open = false;
 
         if (payout > 0) {
-            kai.safeTransfer(msg.sender, payout);
+            vyr.safeTransfer(msg.sender, payout);
         }
 
         emit PositionClosed(msg.sender, uint128(markPrice), pnl, payout);
@@ -190,8 +190,8 @@ contract HeatMarket {
     /// @notice Anyone can liquidate an underwater position. Liquidator receives a bounty.
     function liquidate(address user) external {
         Position storage p = positions[user];
-        require(p.open, "HeatMarket: no position");
-        require(_isLiquidatable(p), "HeatMarket: not liquidatable");
+        require(p.open, "VyralMarket: no position");
+        require(_isLiquidatable(p), "VyralMarket: not liquidatable");
 
         ( , uint128 payout) = _settleRaw(p);
 
@@ -206,10 +206,10 @@ contract HeatMarket {
         p.open = false;
 
         if (payout > 0) {
-            kai.safeTransfer(user, payout);
+            vyr.safeTransfer(user, payout);
         }
         if (bounty > 0) {
-            kai.safeTransfer(msg.sender, bounty);
+            vyr.safeTransfer(msg.sender, bounty);
         }
 
         emit PositionLiquidated(user, msg.sender, uint128(markPrice), bounty);

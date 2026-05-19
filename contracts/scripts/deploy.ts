@@ -7,7 +7,7 @@ type Seed = {
   subject: string;
   category: string;
   imageUrl: string;
-  initialPrice: string; // KAI (decimal string)
+  initialPrice: string; // VYR (decimal string)
   featured?: boolean;
 };
 
@@ -64,28 +64,28 @@ const SEEDS: Seed[] = [
   },
 ];
 
-const INSURANCE_PER_MARKET = ethers.parseEther("1000000"); // 1M KAI
+const INSURANCE_PER_MARKET = ethers.parseEther("1000000"); // 1M VYR
 
 async function main() {
   const [deployer] = await ethers.getSigners();
   console.log(`Deploying from ${deployer.address}`);
 
-  const KAI = await ethers.getContractFactory("KAIToken");
-  const kai = await KAI.deploy(deployer.address);
-  await kai.waitForDeployment();
-  console.log(`KAIToken          → ${await kai.getAddress()}`);
+  const VYR = await ethers.getContractFactory("VyralToken");
+  const vyr = await VYR.deploy(deployer.address);
+  await vyr.waitForDeployment();
+  console.log(`VyralToken         → ${await vyr.getAddress()}`);
 
-  const Factory = await ethers.getContractFactory("HeatMarketFactory");
+  const Factory = await ethers.getContractFactory("VyralMarketFactory");
   const factory = await Factory.deploy(
-    await kai.getAddress(),
+    await vyr.getAddress(),
     deployer.address, // deployer doubles as oracle for local dev
     deployer.address
   );
   await factory.waitForDeployment();
-  console.log(`HeatMarketFactory → ${await factory.getAddress()}`);
+  console.log(`VyralMarketFactory → ${await factory.getAddress()}`);
 
-  // Mint plenty of KAI for the deployer (insurance seeding + faucet headroom).
-  await (await kai.mint(deployer.address, ethers.parseEther("100000000"))).wait();
+  // Mint plenty of VYR for the deployer (insurance seeding + faucet headroom).
+  await (await vyr.mint(deployer.address, ethers.parseEther("100000000"))).wait();
 
   type MarketRecord = Seed & { address: string };
   const markets: MarketRecord[] = [];
@@ -110,8 +110,8 @@ async function main() {
     const marketAddr = event!.args.market as string;
 
     // Seed insurance fund so profitable trades have a counterparty pool.
-    const market = await ethers.getContractAt("HeatMarket", marketAddr);
-    await (await kai.approve(marketAddr, INSURANCE_PER_MARKET)).wait();
+    const market = await ethers.getContractAt("VyralMarket", marketAddr);
+    await (await vyr.approve(marketAddr, INSURANCE_PER_MARKET)).wait();
     await (await market.fundInsurance(INSURANCE_PER_MARKET)).wait();
 
     console.log(`  market: ${seed.subject.padEnd(18)} → ${marketAddr}`);
@@ -120,7 +120,7 @@ async function main() {
 
   const out = {
     chainId: 31337,
-    kai: await kai.getAddress(),
+    vyr: await vyr.getAddress(),
     factory: await factory.getAddress(),
     oracle: deployer.address,
     deployer: deployer.address,
@@ -140,7 +140,7 @@ async function main() {
 
     // Also refresh ABIs so a contract change is fully picked up by the frontend.
     const abis: Record<string, unknown> = {};
-    for (const name of ["KAIToken", "HeatMarket", "HeatMarketFactory"]) {
+    for (const name of ["VyralToken", "VyralMarket", "VyralMarketFactory"]) {
       const artifactPath = path.join(
         __dirname,
         "..",

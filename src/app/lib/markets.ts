@@ -2,7 +2,7 @@
 
 import { type Address, type Hash, formatUnits, parseUnits, maxUint256 } from "viem";
 import { addresses } from "./addresses";
-import { HeatMarketAbi, KAITokenAbi } from "./abi";
+import { VyralMarketAbi, VyralTokenAbi } from "./abi";
 import { getPublicClient, getWalletClient } from "./chain";
 
 export type MarketSnapshot = {
@@ -29,7 +29,7 @@ export async function getMarketSnapshot(market: Address): Promise<MarketSnapshot
   const client = getPublicClient();
   const raw = (await client.readContract({
     address: market,
-    abi: HeatMarketAbi,
+    abi: VyralMarketAbi,
     functionName: "getMarketSnapshot",
   })) as MarketSnapshot;
   return raw;
@@ -39,28 +39,28 @@ export async function getPosition(market: Address, user: Address): Promise<Posit
   const client = getPublicClient();
   const raw = (await client.readContract({
     address: market,
-    abi: HeatMarketAbi,
+    abi: VyralMarketAbi,
     functionName: "getPosition",
     args: [user],
   })) as PositionView;
   return raw;
 }
 
-export async function getKaiBalance(user: Address): Promise<bigint> {
+export async function getVyrBalance(user: Address): Promise<bigint> {
   const client = getPublicClient();
   return (await client.readContract({
-    address: addresses.kai,
-    abi: KAITokenAbi,
+    address: addresses.vyr,
+    abi: VyralTokenAbi,
     functionName: "balanceOf",
     args: [user],
   })) as bigint;
 }
 
-export async function getKaiAllowance(owner: Address, spender: Address): Promise<bigint> {
+export async function getVyrAllowance(owner: Address, spender: Address): Promise<bigint> {
   const client = getPublicClient();
   return (await client.readContract({
-    address: addresses.kai,
-    abi: KAITokenAbi,
+    address: addresses.vyr,
+    abi: VyralTokenAbi,
     functionName: "allowance",
     args: [owner, spender],
   })) as bigint;
@@ -68,19 +68,19 @@ export async function getKaiAllowance(owner: Address, spender: Address): Promise
 
 // ---------- writes ----------
 
-export async function ensureKaiApproval(
+export async function ensureVyrApproval(
   account: Address,
   spender: Address,
   amount: bigint
 ): Promise<Hash | null> {
-  const current = await getKaiAllowance(account, spender);
+  const current = await getVyrAllowance(account, spender);
   if (current >= amount) return null;
   const wallet = getWalletClient(account);
   if (!wallet) throw new Error("No injected wallet");
   return wallet.writeContract({
     account,
-    address: addresses.kai,
-    abi: KAITokenAbi,
+    address: addresses.vyr,
+    abi: VyralTokenAbi,
     functionName: "approve",
     args: [spender, maxUint256],
     chain: undefined,
@@ -90,15 +90,15 @@ export async function ensureKaiApproval(
 export async function openPosition(
   account: Address,
   market: Address,
-  collateralKai: string, // decimal string
+  collateralVyr: string, // decimal string
   leverage: number,
   isLong: boolean
 ): Promise<Hash> {
   const wallet = getWalletClient(account);
   if (!wallet) throw new Error("No injected wallet");
-  const collateral = parseUnits(collateralKai, 18);
+  const collateral = parseUnits(collateralVyr, 18);
 
-  const approvalHash = await ensureKaiApproval(account, market, collateral);
+  const approvalHash = await ensureVyrApproval(account, market, collateral);
   if (approvalHash) {
     await getPublicClient().waitForTransactionReceipt({ hash: approvalHash });
   }
@@ -106,7 +106,7 @@ export async function openPosition(
   return wallet.writeContract({
     account,
     address: market,
-    abi: HeatMarketAbi,
+    abi: VyralMarketAbi,
     functionName: "openPosition",
     args: [collateral, leverage, isLong],
     chain: undefined,
@@ -119,20 +119,20 @@ export async function closePosition(account: Address, market: Address): Promise<
   return wallet.writeContract({
     account,
     address: market,
-    abi: HeatMarketAbi,
+    abi: VyralMarketAbi,
     functionName: "closePosition",
     args: [],
     chain: undefined,
   });
 }
 
-export async function faucetMintKai(account: Address): Promise<Hash> {
+export async function faucetMintVyr(account: Address): Promise<Hash> {
   const wallet = getWalletClient(account);
   if (!wallet) throw new Error("No injected wallet");
   return wallet.writeContract({
     account,
-    address: addresses.kai,
-    abi: KAITokenAbi,
+    address: addresses.vyr,
+    abi: VyralTokenAbi,
     functionName: "faucet",
     args: [],
     chain: undefined,
@@ -141,7 +141,7 @@ export async function faucetMintKai(account: Address): Promise<Hash> {
 
 // ---------- formatting helpers ----------
 
-export const fmtKai = (v: bigint, digits = 2) => {
+export const fmtVyr = (v: bigint, digits = 2) => {
   const s = formatUnits(v, 18);
   const n = Number(s);
   if (!Number.isFinite(n)) return s;
@@ -156,7 +156,7 @@ export const fmtPct = (bps: bigint, digits = 2) =>
 export const fmtPrice = (v: bigint, digits = 2) =>
   Number(formatUnits(v, 18)).toFixed(digits);
 
-export const fmtSignedKai = (v: bigint, digits = 2) => {
+export const fmtSignedVyr = (v: bigint, digits = 2) => {
   const n = Number(formatUnits(v, 18));
   return `${n >= 0 ? "+" : ""}${n.toFixed(digits)}`;
 };

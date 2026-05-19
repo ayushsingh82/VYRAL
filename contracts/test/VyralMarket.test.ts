@@ -7,34 +7,34 @@ const E18 = (n: string | number) => ethers.parseEther(n.toString());
 async function deployFixture() {
   const [owner, oracle, alice, bob, carol] = await ethers.getSigners();
 
-  const KAI = await ethers.getContractFactory("KAIToken");
-  const kai = await KAI.deploy(await owner.getAddress());
-  await kai.waitForDeployment();
+  const VYR = await ethers.getContractFactory("VyralToken");
+  const vyr = await VYR.deploy(await owner.getAddress());
+  await vyr.waitForDeployment();
 
-  const Market = await ethers.getContractFactory("HeatMarket");
+  const Market = await ethers.getContractFactory("VyralMarket");
   const market = await Market.deploy(
-    await kai.getAddress(),
+    await vyr.getAddress(),
     await oracle.getAddress(),
     await owner.getAddress(), // factory placeholder
     "Mr Beast",
     "Pop Culture",
     "https://example.com/mrbeast.jpg",
-    E18(1) // initial price = 1.00 KAI
+    E18(1) // initial price = 1.00 VYR
   );
   await market.waitForDeployment();
 
   // fund traders
   for (const s of [alice, bob, carol]) {
-    await kai.mint(await s.getAddress(), E18(10_000));
-    await kai.connect(s).approve(await market.getAddress(), ethers.MaxUint256);
+    await vyr.mint(await s.getAddress(), E18(10_000));
+    await vyr.connect(s).approve(await market.getAddress(), ethers.MaxUint256);
   }
 
   // Seed the insurance fund so profitable positions have a counterparty pool.
-  await kai.mint(await owner.getAddress(), E18(1_000_000));
-  await kai.connect(owner).approve(await market.getAddress(), ethers.MaxUint256);
+  await vyr.mint(await owner.getAddress(), E18(1_000_000));
+  await vyr.connect(owner).approve(await market.getAddress(), ethers.MaxUint256);
   await market.connect(owner).fundInsurance(E18(1_000_000));
 
-  return { owner, oracle, alice, bob, carol, kai, market };
+  return { owner, oracle, alice, bob, carol, vyr, market };
 }
 
 async function open(
@@ -47,9 +47,9 @@ async function open(
   return market.connect(signer).openPosition(collateral, leverage, isLong);
 }
 
-describe("HeatMarket", () => {
+describe("VyralMarket", () => {
   it("opens a long and books OI + collateral correctly", async () => {
-    const { market, kai, alice } = await deployFixture();
+    const { market, vyr, alice } = await deployFixture();
     await open(market, alice, E18(100), 5, true);
 
     const pos = await market.getPosition(await alice.getAddress());
@@ -67,7 +67,7 @@ describe("HeatMarket", () => {
     expect(snap.shortPctBps).to.equal(0n);
 
     // Contract balance = insurance fund (1M) + alice's posted collateral (100)
-    expect(await kai.balanceOf(await market.getAddress())).to.equal(
+    expect(await vyr.balanceOf(await market.getAddress())).to.equal(
       E18(1_000_000) + E18(100)
     );
   });
@@ -75,10 +75,10 @@ describe("HeatMarket", () => {
   it("rejects leverage above the cap and zero collateral", async () => {
     const { market, alice } = await deployFixture();
     await expect(open(market, alice, E18(100), 21, true)).to.be.revertedWith(
-      "HeatMarket: bad leverage"
+      "VyralMarket: bad leverage"
     );
     await expect(open(market, alice, 0n, 5, true)).to.be.revertedWith(
-      "HeatMarket: zero collateral"
+      "VyralMarket: zero collateral"
     );
   });
 
@@ -86,64 +86,64 @@ describe("HeatMarket", () => {
     const { market, alice } = await deployFixture();
     await open(market, alice, E18(100), 5, true);
     await expect(open(market, alice, E18(50), 2, false)).to.be.revertedWith(
-      "HeatMarket: position exists"
+      "VyralMarket: position exists"
     );
   });
 
   it("settles profit on a long when price doubles", async () => {
-    const { market, kai, oracle, alice } = await deployFixture();
+    const { market, vyr, oracle, alice } = await deployFixture();
     await open(market, alice, E18(100), 5, true); // size = 500, entry = 1
 
     await market.connect(oracle).updatePrice(E18(2)); // mark = 2 → +100% on size 500 → +500
     const view = await market.getPosition(await alice.getAddress());
     expect(view.unrealizedPnl).to.equal(E18(500));
 
-    const before = await kai.balanceOf(await alice.getAddress());
+    const before = await vyr.balanceOf(await alice.getAddress());
     await market.connect(alice).closePosition();
-    const after = await kai.balanceOf(await alice.getAddress());
+    const after = await vyr.balanceOf(await alice.getAddress());
     expect(after - before).to.equal(E18(600)); // collateral 100 + pnl 500
   });
 
   it("settles loss on a long when price falls and clamps payout at zero if wiped out", async () => {
-    const { market, kai, oracle, alice } = await deployFixture();
+    const { market, vyr, oracle, alice } = await deployFixture();
     await open(market, alice, E18(100), 5, true); // size = 500, entry = 1
     // collateral 100, leverage 5 → ~20% price drop wipes out collateral.
     await market.connect(oracle).updatePrice(E18("0.7")); // -30% on size 500 → -150
 
-    const before = await kai.balanceOf(await alice.getAddress());
+    const before = await vyr.balanceOf(await alice.getAddress());
     await market.connect(alice).closePosition();
-    const after = await kai.balanceOf(await alice.getAddress());
+    const after = await vyr.balanceOf(await alice.getAddress());
     expect(after - before).to.equal(0n); // payout floored at 0
   });
 
   it("profits a short when price drops", async () => {
-    const { market, kai, oracle, alice } = await deployFixture();
+    const { market, vyr, oracle, alice } = await deployFixture();
     await open(market, alice, E18(100), 5, false); // short, size 500
 
     await market.connect(oracle).updatePrice(E18("0.8")); // -20% on size 500 → +100 for short
 
-    const before = await kai.balanceOf(await alice.getAddress());
+    const before = await vyr.balanceOf(await alice.getAddress());
     await market.connect(alice).closePosition();
-    const after = await kai.balanceOf(await alice.getAddress());
+    const after = await vyr.balanceOf(await alice.getAddress());
     expect(after - before).to.equal(E18(200)); // collateral 100 + pnl 100
   });
 
   it("permits anyone to liquidate when loss >= 95% of collateral and pays bounty", async () => {
-    const { market, kai, oracle, alice, bob } = await deployFixture();
+    const { market, vyr, oracle, alice, bob } = await deployFixture();
     await open(market, alice, E18(100), 10, true); // size = 1000, entry = 1
-    // 9.5% drop → loss = 95 KAI → just at threshold
+    // 9.5% drop → loss = 95 VYR → just at threshold
     await market.connect(oracle).updatePrice(E18("0.905")); // -9.5%
 
     // Bob liquidates Alice
-    const bobBefore = await kai.balanceOf(await bob.getAddress());
-    const aliceBefore = await kai.balanceOf(await alice.getAddress());
+    const bobBefore = await vyr.balanceOf(await bob.getAddress());
+    const aliceBefore = await vyr.balanceOf(await alice.getAddress());
 
     await market.connect(bob).liquidate(await alice.getAddress());
 
-    const bobAfter = await kai.balanceOf(await bob.getAddress());
-    const aliceAfter = await kai.balanceOf(await alice.getAddress());
+    const bobAfter = await vyr.balanceOf(await bob.getAddress());
+    const aliceAfter = await vyr.balanceOf(await alice.getAddress());
 
-    // Alice gets tiny residual (5% of collateral = 5 KAI), Bob gets 5% of forfeited 95 = 4.75
+    // Alice gets tiny residual (5% of collateral = 5 VYR), Bob gets 5% of forfeited 95 = 4.75
     expect(aliceAfter - aliceBefore).to.equal(E18(5));
     expect(bobAfter - bobBefore).to.equal(E18("4.75"));
 
@@ -160,7 +160,7 @@ describe("HeatMarket", () => {
     await market.connect(oracle).updatePrice(E18("0.95")); // -5% on size 500 → -25, well under threshold
     await expect(
       market.connect(bob).liquidate(await alice.getAddress())
-    ).to.be.revertedWith("HeatMarket: not liquidatable");
+    ).to.be.revertedWith("VyralMarket: not liquidatable");
   });
 
   it("reports long/short sentiment percentages", async () => {
@@ -178,7 +178,7 @@ describe("HeatMarket", () => {
   it("rejects price updates from non-oracle", async () => {
     const { market, alice } = await deployFixture();
     await expect(market.connect(alice).updatePrice(E18(2))).to.be.revertedWith(
-      "HeatMarket: not oracle"
+      "VyralMarket: not oracle"
     );
   });
 
@@ -186,13 +186,13 @@ describe("HeatMarket", () => {
     const { market, oracle, alice } = await deployFixture();
     const fundBefore = await market.insuranceFund();
 
-    // Win: alice +500 KAI, insurance should drop by 500
+    // Win: alice +500 VYR, insurance should drop by 500
     await open(market, alice, E18(100), 5, true);
     await market.connect(oracle).updatePrice(E18(2));
     await market.connect(alice).closePosition();
     expect(await market.insuranceFund()).to.equal(fundBefore - E18(500));
 
-    // Loss: alice loses all 100 KAI collateral, insurance grows by 100
+    // Loss: alice loses all 100 VYR collateral, insurance grows by 100
     const fundMid = await market.insuranceFund();
     await market.connect(oracle).updatePrice(E18(2)); // reset entry baseline
     await open(market, alice, E18(100), 5, true);    // size 500, entry 2
@@ -207,7 +207,7 @@ describe("HeatMarket", () => {
     expect(await market.oracle()).to.equal(await bob.getAddress());
     // old oracle now powerless
     await expect(market.connect(oracle).updatePrice(E18(2))).to.be.revertedWith(
-      "HeatMarket: not oracle"
+      "VyralMarket: not oracle"
     );
   });
 });

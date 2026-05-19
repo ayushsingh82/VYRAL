@@ -11,7 +11,7 @@ export type MarketSeed = {
 
 export type AddressBook = {
   chainId: number;
-  kai: `0x${string}`;
+  vyr: `0x${string}`;
   factory: `0x${string}`;
   oracle: `0x${string}`;
   deployer: `0x${string}`;

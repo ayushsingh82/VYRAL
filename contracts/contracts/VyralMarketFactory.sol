@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {HeatMarket} from "./HeatMarket.sol";
+import {VyralMarket} from "./VyralMarket.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @title HeatMarketFactory
-/// @notice Deploys and indexes HeatMarket instances. Owned by a deployer that can
+/// @title VyralMarketFactory
+/// @notice Deploys and indexes VyralMarket instances. Owned by a deployer that can
 ///         seed markets; in production this would be replaced by governance.
-contract HeatMarketFactory is Ownable {
-    address public immutable kai;
+contract VyralMarketFactory is Ownable {
+    address public immutable vyr;
     address public oracle;
 
     address[] public allMarkets;
@@ -24,12 +24,12 @@ contract HeatMarketFactory is Ownable {
     );
     event OracleUpdated(address oldOracle, address newOracle);
 
-    constructor(address kai_, address oracle_, address initialOwner)
+    constructor(address vyr_, address oracle_, address initialOwner)
         Ownable(initialOwner)
     {
-        require(kai_ != address(0), "Factory: zero kai");
+        require(vyr_ != address(0), "Factory: zero vyr");
         require(oracle_ != address(0), "Factory: zero oracle");
-        kai = kai_;
+        vyr = vyr_;
         oracle = oracle_;
     }
 
@@ -45,8 +45,8 @@ contract HeatMarketFactory is Ownable {
         string calldata imageUrl,
         uint256 initialPrice
     ) external onlyOwner returns (address market) {
-        HeatMarket m = new HeatMarket(
-            kai,
+        VyralMarket m = new VyralMarket(
+            vyr,
             oracle,
             address(this),
             subject,

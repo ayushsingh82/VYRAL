@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useMarket } from "../hooks/useMarket";
 import { useWallet } from "../hooks/useWallet";
-import { fmtKai, fmtPct, fmtPrice } from "../lib/markets";
+import { fmtVyr, fmtPct, fmtPrice } from "../lib/markets";
 import OpenPositionModal from "./OpenPositionModal";
 import type { MarketSeed } from "../lib/addresses";
 
@@ -29,8 +29,8 @@ const StreamingBox: React.FC<Props> = ({ featured }) => {
 
   const longPct = snapshot ? fmtPct(snapshot.longPctBps) : "—";
   const shortPct = snapshot ? fmtPct(snapshot.shortPctBps) : "—";
-  const longKai = snapshot ? fmtKai(snapshot.longOI) : "—";
-  const shortKai = snapshot ? fmtKai(snapshot.shortOI) : "—";
+  const longVyr = snapshot ? fmtVyr(snapshot.longOI) : "—";
+  const shortVyr = snapshot ? fmtVyr(snapshot.shortOI) : "—";
   const longBar = snapshot ? Number(snapshot.longPctBps) / 100 : 50;
 
   return (
@@ -62,21 +62,21 @@ const StreamingBox: React.FC<Props> = ({ featured }) => {
               <div className="text-center">
                 <div className="text-gray-300">Price</div>
                 <div className="font-bold">
-                  {snapshot ? fmtPrice(snapshot.markPrice) : "—"} KAI
+                  {snapshot ? fmtPrice(snapshot.markPrice) : "—"} VYR
                 </div>
               </div>
               <div className="w-px h-8 bg-gray-600"></div>
               <div className="text-center">
                 <div className="text-gray-300">Open Interest</div>
                 <div className="font-bold">
-                  {snapshot ? fmtKai(snapshot.longOI + snapshot.shortOI) : "—"}
+                  {snapshot ? fmtVyr(snapshot.longOI + snapshot.shortOI) : "—"}
                 </div>
               </div>
               <div className="w-px h-8 bg-gray-600"></div>
               <div className="text-center">
                 <div className="text-gray-300">Volume</div>
                 <div className="font-bold">
-                  {snapshot ? fmtKai(snapshot.volumeAccum) : "—"}
+                  {snapshot ? fmtVyr(snapshot.volumeAccum) : "—"}
                 </div>
               </div>
             </div>
@@ -106,8 +106,8 @@ const StreamingBox: React.FC<Props> = ({ featured }) => {
                 <span className="text-green-400 font-bold text-sm">{longPct}</span>
               </div>
               <div className="text-white">
-                <span className="text-sm font-bold">{longKai}</span>
-                <span className="text-gray-400 ml-1 text-xs">KAI</span>
+                <span className="text-sm font-bold">{longVyr}</span>
+                <span className="text-gray-400 ml-1 text-xs">VYR</span>
               </div>
             </div>
           </div>
@@ -119,8 +119,8 @@ const StreamingBox: React.FC<Props> = ({ featured }) => {
                 <span className="text-red-400 font-bold text-sm">{shortPct}</span>
               </div>
               <div className="text-white">
-                <span className="text-sm font-bold">{shortKai}</span>
-                <span className="text-gray-400 ml-1 text-xs">KAI</span>
+                <span className="text-sm font-bold">{shortVyr}</span>
+                <span className="text-gray-400 ml-1 text-xs">VYR</span>
               </div>
             </div>
           </div>

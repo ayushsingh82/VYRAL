@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Address } from "viem";
-import { hasInjectedWallet, HEAT_CHAIN } from "../lib/chain";
+import { hasInjectedWallet, VYRAL_CHAIN } from "../lib/chain";
 
 type State = {
   address: Address | null;
@@ -52,13 +52,13 @@ export function useWallet() {
         method: "eth_chainId",
       })) as string;
       let chainId = parseInt(chainIdHex, 16);
-      if (chainId !== HEAT_CHAIN.id) {
+      if (chainId !== VYRAL_CHAIN.id) {
         try {
           await window.ethereum!.request({
             method: "wallet_switchEthereumChain",
-            params: [{ chainId: `0x${HEAT_CHAIN.id.toString(16)}` }],
+            params: [{ chainId: `0x${VYRAL_CHAIN.id.toString(16)}` }],
           });
-          chainId = HEAT_CHAIN.id;
+          chainId = VYRAL_CHAIN.id;
         } catch {
           // Try to add the chain.
           try {
@@ -66,14 +66,14 @@ export function useWallet() {
               method: "wallet_addEthereumChain",
               params: [
                 {
-                  chainId: `0x${HEAT_CHAIN.id.toString(16)}`,
-                  chainName: HEAT_CHAIN.name,
-                  rpcUrls: [...HEAT_CHAIN.rpcUrls.default.http],
-                  nativeCurrency: HEAT_CHAIN.nativeCurrency,
+                  chainId: `0x${VYRAL_CHAIN.id.toString(16)}`,
+                  chainName: VYRAL_CHAIN.name,
+                  rpcUrls: [...VYRAL_CHAIN.rpcUrls.default.http],
+                  nativeCurrency: VYRAL_CHAIN.nativeCurrency,
                 },
               ],
             });
-            chainId = HEAT_CHAIN.id;
+            chainId = VYRAL_CHAIN.id;
           } catch {
             // Stay on current chain, error surfaced below.
           }
@@ -83,7 +83,7 @@ export function useWallet() {
         address: (accounts[0] as Address) ?? null,
         chainId,
         connecting: false,
-        error: chainId !== HEAT_CHAIN.id ? `Switch to chain ${HEAT_CHAIN.id}` : null,
+        error: chainId !== VYRAL_CHAIN.id ? `Switch to chain ${VYRAL_CHAIN.id}` : null,
       });
     } catch (e) {
       setState((s) => ({

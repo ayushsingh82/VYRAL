@@ -11,9 +11,9 @@ import {
   type WalletClient,
 } from "viem";
 
-export const HEAT_CHAIN = defineChain({
+export const VYRAL_CHAIN = defineChain({
   id: 31337,
-  name: "Heat Local (Hardhat)",
+  name: "Vyral Local (Hardhat)",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
     default: { http: ["http://127.0.0.1:8545"] },
@@ -25,7 +25,7 @@ let _publicClient: PublicClient | undefined;
 export function getPublicClient(): PublicClient {
   if (!_publicClient) {
     _publicClient = createPublicClient({
-      chain: HEAT_CHAIN,
+      chain: VYRAL_CHAIN,
       transport: http(),
     });
   }
@@ -46,7 +46,7 @@ export function getWalletClient(account: Address): WalletClient | null {
   if (typeof window === "undefined" || !window.ethereum) return null;
   return createWalletClient({
     account,
-    chain: HEAT_CHAIN,
+    chain: VYRAL_CHAIN,
     transport: custom(window.ethereum),
   });
 }

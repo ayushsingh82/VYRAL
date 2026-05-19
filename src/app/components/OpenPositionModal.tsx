@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import type { Address } from "viem";
-import { closePosition, openPosition, type PositionView, fmtSignedKai, fmtKai } from "../lib/markets";
+import { closePosition, openPosition, type PositionView, fmtSignedVyr, fmtVyr } from "../lib/markets";
 
 type Props = {
   open: boolean;
@@ -93,7 +93,7 @@ const OpenPositionModal: React.FC<Props> = ({
             </div>
             <div className="flex justify-between">
               <span>Collateral</span>
-              <span>{fmtKai(position.collateral)} KAI</span>
+              <span>{fmtVyr(position.collateral)} VYR</span>
             </div>
             <div className="flex justify-between">
               <span>Unrealised P&amp;L</span>
@@ -102,7 +102,7 @@ const OpenPositionModal: React.FC<Props> = ({
                   position.unrealizedPnl >= 0n ? "text-green-400" : "text-red-400"
                 }
               >
-                {fmtSignedKai(position.unrealizedPnl)} KAI
+                {fmtSignedVyr(position.unrealizedPnl)} VYR
               </span>
             </div>
             <button
@@ -140,7 +140,7 @@ const OpenPositionModal: React.FC<Props> = ({
               </button>
             </div>
 
-            <label className="block text-xs text-gray-400 mb-1">Collateral (KAI)</label>
+            <label className="block text-xs text-gray-400 mb-1">Collateral (VYR)</label>
             <input
               value={collateral}
               onChange={(e) => setCollateral(e.target.value.replace(/[^0-9.]/g, ""))}
@@ -169,7 +169,7 @@ const OpenPositionModal: React.FC<Props> = ({
             <div className="text-xs text-gray-400 mb-3 flex justify-between">
               <span>Notional size</span>
               <span className="text-white font-bold">
-                {(parseFloat(collateral || "0") * leverage).toFixed(2)} KAI
+                {(parseFloat(collateral || "0") * leverage).toFixed(2)} VYR
               </span>
             </div>
 
