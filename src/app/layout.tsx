@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Pacifico } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
+import Ticker from "./components/Ticker";
 import Footer from "./components/Footer";
 
 const geistSans = Geist({
@@ -11,6 +12,12 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const pacifico = Pacifico({
+  variable: "--font-cursive",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -28,9 +35,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} antialiased min-h-screen flex flex-col`}
       >
         <Navbar />
+        <Ticker />
         <main className="flex-1">
           {children}
         </main>
