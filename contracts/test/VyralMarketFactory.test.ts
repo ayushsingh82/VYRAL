@@ -71,4 +71,44 @@ describe("VyralMarketFactory", () => {
     expect(await m.subject()).to.equal("S&P500");
     expect(await m.markPrice()).to.equal(ethers.parseEther("5.7"));
   });
+
+  it("owner can rotate the oracle and event is emitted", async () => {
+    const { factory, oracle, alice } = await deploy();
+    await expect(factory.setOracle(await alice.getAddress()))
+      .to.emit(factory, "OracleUpdated")
+      .withArgs(await oracle.getAddress(), await alice.getAddress());
+    expect(await factory.oracle()).to.equal(await alice.getAddress());
+  });
+
+  it("non-owner cannot rotate the oracle", async () => {
+    const { factory, alice } = await deploy();
+    await expect(
+      factory.connect(alice).setOracle(await alice.getAddress())
+    ).to.be.revertedWithCustomError(factory, "OwnableUnauthorizedAccount");
+  });
+
+  it("reverts on zero oracle in setOracle", async () => {
+    const { factory } = await deploy();
+    await expect(
+      factory.setOracle(ethers.ZeroAddress)
+    ).to.be.revertedWith("Factory: zero oracle");
+  });
+
+  it("constructor reverts on zero VYR address", async () => {
+    const [owner, oracle] = await ethers.getSigners();
+    const Factory = await ethers.getContractFactory("VyralMarketFactory");
+    await expect(
+      Factory.deploy(ethers.ZeroAddress, await oracle.getAddress(), await owner.getAddress())
+    ).to.be.revertedWith("Factory: zero vyr");
+  });
+
+  it("constructor reverts on zero oracle address", async () => {
+    const [owner] = await ethers.getSigners();
+    const VYR = await ethers.getContractFactory("VyralToken");
+    const vyr = await VYR.deploy(await owner.getAddress());
+    const Factory = await ethers.getContractFactory("VyralMarketFactory");
+    await expect(
+      Factory.deploy(await vyr.getAddress(), ethers.ZeroAddress, await owner.getAddress())
+    ).to.be.revertedWith("Factory: zero oracle");
+  });
 });

@@ -210,4 +210,55 @@ describe("VyralMarket", () => {
       "VyralMarket: not oracle"
     );
   });
+
+  it("reverts setOracle when called by non-oracle", async () => {
+    const { market, alice, bob } = await deployFixture();
+    await expect(
+      market.connect(alice).setOracle(await bob.getAddress())
+    ).to.be.revertedWith("VyralMarket: not oracle");
+  });
+
+  it("reverts updatePrice to zero", async () => {
+    const { market, oracle } = await deployFixture();
+    await expect(market.connect(oracle).updatePrice(0n)).to.be.revertedWith(
+      "VyralMarket: zero price"
+    );
+  });
+
+  it("reverts closePosition when caller has no open position", async () => {
+    const { market, alice } = await deployFixture();
+    await expect(market.connect(alice).closePosition()).to.be.revertedWith(
+      "VyralMarket: no position"
+    );
+  });
+
+  it("reverts liquidate when target has no open position", async () => {
+    const { market, alice, bob } = await deployFixture();
+    await expect(
+      market.connect(bob).liquidate(await alice.getAddress())
+    ).to.be.revertedWith("VyralMarket: no position");
+  });
+
+  it("reverts fundInsurance with zero amount", async () => {
+    const { market, owner } = await deployFixture();
+    await expect(market.connect(owner).fundInsurance(0n)).to.be.revertedWith(
+      "VyralMarket: zero amount"
+    );
+  });
+
+  it("emits PriceUpdated event on price change", async () => {
+    const { market, oracle } = await deployFixture();
+    await expect(market.connect(oracle).updatePrice(E18(3)))
+      .to.emit(market, "PriceUpdated")
+      .withArgs(E18(1), E18(3));
+  });
+
+  it("tracks volumeAccum across multiple positions", async () => {
+    const { market, alice, bob, carol } = await deployFixture();
+    await open(market, alice, E18(100), 2, true);   // size 200
+    await open(market, bob,   E18(50),  4, false);  // size 200
+    await open(market, carol, E18(200), 1, true);   // size 200
+    const snap = await market.getMarketSnapshot();
+    expect(snap.volumeAccum).to.equal(E18(600));
+  });
 });
