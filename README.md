@@ -212,11 +212,11 @@ cd my-app/contracts
 npm test
 ```
 
-**18 specs**, all passing, covering:
+**30 specs**, all passing, covering:
 
-- `VyralToken` — metadata, mint, faucet, transfers.
-- `VyralMarket` — open long/short, OI accounting, leverage cap rejection, single-position-per-user invariant, profit settlement, loss settlement with payout floor at 0, short profit, liquidation at threshold with correct bounty / residual, refusal of healthy liquidations, sentiment %, oracle-only price updates, oracle rotation, insurance fund debit on profit / credit on loss.
-- `VyralMarketFactory` — owner-only creation, category indexing, `MarketCreated` event payload, wiring of VYR + oracle into created markets.
+- `VyralToken` (2) — metadata, mint, faucet, transfers.
+- `VyralMarket` (19) — open long/short, OI accounting, leverage cap rejection, single-position-per-user invariant, profit settlement, loss settlement with payout floor at 0, short profit, liquidation at threshold with correct bounty / residual, refusal of healthy liquidations, sentiment %, oracle-only price updates, oracle rotation, insurance fund debit on profit / credit on loss, `setOracle` access control, `updatePrice` zero-value guard, `closePosition` / `liquidate` on non-existent position guards, `fundInsurance` zero-amount guard, `PriceUpdated` event, cumulative `volumeAccum`.
+- `VyralMarketFactory` (9) — owner-only creation, category indexing, `MarketCreated` event payload, wiring of VYR + oracle into created markets, oracle rotation with `OracleUpdated` event, non-owner oracle rotation rejection, `setOracle` zero-address guard, constructor zero-address guards for both VYR and oracle.
 
 Frontend validation: `npx tsc --noEmit`, `npx eslint src --max-warnings 0`, `npx next build` all clean.
 
@@ -266,6 +266,62 @@ The local stack runs without any environment variables. For non-local deployment
 | `NEXT_PUBLIC_RPC_URL` | `my-app/.env.local` | Public RPC (planned) |
 
 `.env*` is gitignored by the Next.js template.
+
+## Oracle integration
+
+The contracts enforce that only a single `oracle` address can call `updatePrice(uint256)`. Locally the deployer acts as oracle. Three practical options for wiring real prices:
+
+### Option A — Off-chain keeper (recommended for testnet)
+
+Write a cron-driven Node.js script that fetches external data (social-media analytics API, CoinGecko for RWA subjects, etc.) and pushes the price on-chain:
+
+```ts
+import { createWalletClient, http, parseEther } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount(process.env.ORACLE_PRIVATE_KEY as `0x${string}`);
+const wallet  = createWalletClient({ account, transport: http("http://127.0.0.1:8545") });
+
+// price = popularityScore normalised to 1e18
+await wallet.writeContract({
+  address: MARKET_ADDRESS,
+  abi: VyralMarketAbi,
+  functionName: "updatePrice",
+  args: [parseEther("2.65")],
+});
+```
+
+Run this script on a cron (e.g. every 60 s) with a server-side secret. For local dev, the keeper can also be invoked manually in `deploy.ts` after pulling live data.
+
+### Option B — Chainlink data feeds (production RWA / crypto subjects)
+
+Replace the `updatePrice` oracle role with a pull from a Chainlink `AggregatorV3Interface`. No keeper required — Chainlink pushes prices on-chain automatically. Practical for subjects that have a Chainlink feed (S&P500, BTC, ETH, etc.).
+
+```solidity
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
+function markPriceLive() external view returns (uint256) {
+    (, int256 answer,,,) = priceFeed.latestRoundData();
+    return uint256(answer) * 1e10; // 8-decimal feed → 1e18
+}
+```
+
+### Option C — Signed off-chain report (custom popularity score)
+
+A trusted backend signs a `(marketAddress, price, timestamp)` tuple with an ECDSA key. An on-chain `PriceKeeper` contract verifies the signature and forwards the price:
+
+```solidity
+function relay(address market, uint256 price, uint256 ts, bytes calldata sig) external {
+    require(block.timestamp - ts < MAX_STALENESS, "stale");
+    bytes32 h = keccak256(abi.encodePacked(market, price, ts));
+    require(ECDSA.recover(h, sig) == trustedSigner, "bad sig");
+    IVyralMarket(market).updatePrice(price);
+}
+```
+
+This decouples the backend from holding direct write access to every market contract.
+
+---
 
 ## Production checklist
 
